@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Where the recommendation rests on a guess</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital@0;1&family=Inter:wght@400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --color-white:     #FFFFFF;
+      --color-ink:       #2a1a0e;
+      --color-red:       #C8102E;
+      --color-secondary: #545454;
+      --color-border:    #D4D4D4;
+      --color-ochre:     #C8860E;
+      --radius-md: 8px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-white:     #111111;
+        --color-ink:       #F0EBE3;
+        --color-red:       #E8243A;
+        --color-secondary: #A0978C;
+        --color-border:    #2E2E2E;
+        --color-ochre:     #D49A30;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--color-white); color: var(--color-ink);
+           font-family: 'Inter', -apple-system, 'Helvetica Neue', sans-serif; padding: 24px; }
+    .fig-title { font-family: 'EB Garamond', Georgia, serif; font-size: 28px; line-height: 1.15; font-weight: 400; }
+    .fig-sub   { font-size: 13px; color: var(--color-secondary); margin-top: 4px; max-width: 70ch; }
+    #chart { width: 100%; max-width: 860px; }
+    .axis-tick text { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: var(--color-secondary); }
+    .axis-title { font-size: 12px; fill: var(--color-secondary); }
+    .role-label { font-size: 12px; fill: var(--color-ink); font-weight: 600; }
+    .rec-label  { font-family: 'JetBrains Mono', monospace; font-size: 11px; fill: var(--color-secondary); }
+    .thresh-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; fill: var(--color-secondary); }
+    .legend-label { font-size: 12px; fill: var(--color-ink); }
+    .note { font-size: 11px; fill: var(--color-secondary); }
+    .source-line { font-size: 11px; color: var(--color-secondary); margin-top: 16px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .tooltip { position: absolute; pointer-events: none; opacity: 0; background: var(--color-ink);
+               color: var(--color-white); font-size: 12px; padding: 8px 10px; border-radius: var(--radius-md);
+               max-width: 260px; line-height: 1.4; box-shadow: 0 6px 20px -6px rgb(18 18 18 / 0.24); }
+    .tooltip .src { font-family: 'JetBrains Mono', monospace; color: var(--color-ochre); }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  </style>
+</head>
+<body>
+  <div class="fig-title">Where the recommendation rests on a guess</div>
+  <div class="fig-sub">Each bar is a role's composite score, split by the <em>source</em> of each term.
+    Solid = a government record. Hatched red with a ± band = <strong>fit</strong>, a model judgment (± 0.10).
+    A closed gate (liveness / timeline) collapses the whole bar to zero, no matter how strong the votes.</div>
+  <div id="chart" role="main"></div>
+  <div class="source-line">Source: role-scorer.mjs on case-healthtech-pm-opt-roles.json · Ch.11 composite · threshold 0.30 / consider-floor 0.20</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <script>
+    // ---- data: real contributions from the scorer (contribution = value × weight), pre-gate ----
+    // composite = (sponsorship + fit + role_quality) × liveness × timeline
+    const FALLBACK = [
+      { id:'omada-pm',  short:'Omada · PM',  label:'Omada, PM Billing',   spons:0.210, fit:0.165, gate:0.9, gateNote:'× timeline 0.9', rec:'Consider',    ghost:null  },
+      { id:'oula',      short:'Oula · Ops',  label:'Oula, Product Ops',    spons:0.105, fit:0.180, gate:0.9, gateNote:'× timeline 0.9', rec:'Consider',    ghost:null  },
+      { id:'omada-apm', short:'Omada · APM', label:'Omada, APM (expired)', spons:0.210, fit:0.225, gate:0.0, gateNote:'liveness 0, gate closed', rec:'Skip · gated', ghost:0.392 }
+    ];
+    const FIT_WEIGHT = 0.30, FIT_UNC = 0.10;      // fit is a model judgment: ±0.10 on the 0–1 fit scale
+    const THRESHOLD = 0.30, CONSIDER = 0.20;
+
+    const roles = FALLBACK.map(r => {
+      const sponsSlice = r.spons * r.gate;        // contribution after the gate multiplier
+      const fitSlice   = r.fit   * r.gate;
+      const composite  = sponsSlice + fitSlice;
+      const fitErr      = FIT_UNC * FIT_WEIGHT * r.gate;   // how much fit-uncertainty moves the composite
+      return { ...r, sponsSlice, fitSlice, composite, fitErr };
+    });
+
+    function draw() {
+      d3.select('#chart').selectAll('*').remove();
+      const margin = { top: 40, right: 40, bottom: 100, left: 64 };
+      const totalWidth  = Math.min(document.getElementById('chart').clientWidth || 820, 860);
+      const totalHeight = 460;
+      const chartWidth  = totalWidth  - margin.left - margin.right;
+      const chartHeight = totalHeight - margin.top  - margin.bottom;
+
+      const svg = d3.select('#chart').append('svg')
+        .attr('width', totalWidth).attr('height', totalHeight)
+        .attr('role', 'img').attr('aria-labelledby', 'ttl dsc');
+      svg.append('title').attr('id','ttl').text('Composite score by role, decomposed by term source');
+      svg.append('desc').attr('id','dsc').text('Stacked bars show each role’s composite split into a solid sponsorship (record) slice and a hatched fit (model-judgment) slice with a plus-or-minus band; the expired posting is gated to zero, with a dashed ghost showing what a stale liveness signal would wrongly score.');
+
+      // hatch pattern for the model-judgment (fit) slice
+      const defs = svg.append('defs');
+      const hatch = defs.append('pattern').attr('id','hatch').attr('width',6).attr('height',6)
+        .attr('patternUnits','userSpaceOnUse').attr('patternTransform','rotate(45)');
+      hatch.append('rect').attr('width',6).attr('height',6).attr('fill','var(--color-red)').attr('opacity',0.18);
+      hatch.append('line').attr('x1',0).attr('y1',0).attr('x2',0).attr('y2',6)
+        .attr('stroke','var(--color-red)').attr('stroke-width',2.4);
+
+      const gChart = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+      const x = d3.scaleBand().domain(roles.map(r => r.id)).range([0, chartWidth]).padding(0.38);
+      const y = d3.scaleLinear().domain([0, 0.6]).range([chartHeight, 0]);   // zero baseline (required)
+
+      // gridlines (decorative)
+      gChart.append('g').attr('aria-hidden','true')
+        .selectAll('line').data(y.ticks(6)).join('line')
+        .attr('x1',0).attr('x2',chartWidth).attr('y1',y).attr('y2',y)
+        .attr('stroke','var(--color-border)').attr('stroke-opacity',0.6);
+
+      // y axis
+      const yAxis = gChart.append('g').attr('class','axis-tick').attr('aria-hidden','true')
+        .call(d3.axisLeft(y).ticks(6).tickSize(0).tickPadding(8));
+      yAxis.select('.domain').remove();
+      gChart.append('text').attr('class','axis-title').attr('transform','rotate(-90)')
+        .attr('x', -chartHeight/2).attr('y', -46).attr('text-anchor','middle').text('Composite score');
+
+      // threshold reference lines
+      [[THRESHOLD,'Apply / Interview ≥ 0.30'],[CONSIDER,'Consider ≥ 0.20']].forEach(([v,lab]) => {
+        gChart.append('line').attr('aria-hidden','true')
+          .attr('x1',0).attr('x2',chartWidth).attr('y1',y(v)).attr('y2',y(v))
+          .attr('stroke','var(--color-ochre)').attr('stroke-width',1.5).attr('stroke-dasharray','4 3');
+        gChart.append('text').attr('class','thresh-label')
+          .attr('x',chartWidth).attr('y',y(v)-4).attr('text-anchor','end').text(lab);
+      });
+
+      const tooltip = d3.select('body').append('div').attr('class','tooltip');
+
+      roles.forEach(r => {
+        const bx = x(r.id), bw = x.bandwidth();
+
+        // ghost: what a stale-liveness signal would wrongly score (§6); dashed outline
+        if (r.ghost != null) {
+          gChart.append('rect').attr('aria-hidden','true')
+            .attr('x',bx).attr('y',y(r.ghost)).attr('width',bw).attr('height',chartHeight-y(r.ghost))
+            .attr('fill','none').attr('stroke','var(--color-secondary)').attr('stroke-dasharray','3 3').attr('stroke-width',1);
+          gChart.append('text').attr('class','note').attr('x',bx+bw/2).attr('y',y(r.ghost)-6).attr('text-anchor','middle')
+            .text('stale-liveness → 0.392 (§6)');
+        }
+
+        // sponsorship slice (record), solid ink
+        const sponsH = chartHeight - y(r.sponsSlice);
+        const sBar = gChart.append('rect').attr('class','bar-rect').attr('tabindex', r.gate>0?0:-1)
+          .attr('x',bx).attr('y',y(r.sponsSlice)).attr('width',bw).attr('height',sponsH)
+          .attr('fill','var(--color-ink)')
+          .attr('aria-label',`${r.label}: sponsorship contributes ${r.sponsSlice.toFixed(3)} (record)`);
+
+        // fit slice (model judgment), hatched red, stacked on top
+        const fitPxH = y(r.sponsSlice) - y(r.sponsSlice + r.fitSlice);
+        const fBar = gChart.append('rect').attr('class','bar-rect').attr('tabindex', r.gate>0?0:-1)
+          .attr('x',bx).attr('y',y(r.sponsSlice + r.fitSlice)).attr('width',bw).attr('height',fitPxH)
+          .attr('fill','url(#hatch)').attr('stroke','var(--color-red)').attr('stroke-width',1)
+          .attr('aria-label',`${r.label}: fit contributes ${r.fitSlice.toFixed(3)}, MODEL JUDGMENT, ±${r.fitErr.toFixed(3)}`);
+
+        // (no enter-fade: this figure is captured statically and embedded as a slide)
+
+        // fit ± error band (only where the bar exists)
+        if (r.composite > 0) {
+          const cx = bx + bw/2;
+          gChart.append('line').attr('aria-hidden','true')
+            .attr('x1',cx).attr('x2',cx).attr('y1',y(r.composite - r.fitErr)).attr('y2',y(r.composite + r.fitErr))
+            .attr('stroke','var(--color-red)').attr('stroke-width',1.5);
+          [r.composite - r.fitErr, r.composite + r.fitErr].forEach(v => {
+            gChart.append('line').attr('aria-hidden','true')
+              .attr('x1',cx-5).attr('x2',cx+5).attr('y1',y(v)).attr('y2',y(v)).attr('stroke','var(--color-red)').attr('stroke-width',1.5);
+          });
+        }
+
+        // composite value + gate note
+        if (r.composite > 0) {
+          gChart.append('text').attr('class','role-label').attr('x',bx+bw/2).attr('y',y(r.composite + r.fitErr)-10)
+            .attr('text-anchor','middle').style('font-family',"'JetBrains Mono', monospace")
+            .text(r.composite.toFixed(3));
+        } else {
+          gChart.append('text').attr('class','note').attr('x',bx+bw/2).attr('y',chartHeight-8)
+            .attr('text-anchor','middle').style('fill','var(--color-red)').text('0.000 · GATE CLOSED');
+        }
+
+        // role label + recommendation under the axis (short, non-overlapping)
+        gChart.append('text').attr('class','role-label').attr('x',bx+bw/2).attr('y',chartHeight+22)
+          .attr('text-anchor','middle').text(r.short);
+        gChart.append('text').attr('class','rec-label').attr('x',bx+bw/2).attr('y',chartHeight+38)
+          .attr('text-anchor','middle').text(r.rec);
+
+        // interaction
+        const html = `<strong>${r.label}</strong><br>
+          sponsorship <span class="src">record</span>: ${r.sponsSlice.toFixed(3)}<br>
+          fit <span class="src">model-judgment ±${r.fitErr.toFixed(3)}</span>: ${r.fitSlice.toFixed(3)}<br>
+          role_quality <span class="src">inert · weight 0</span>: 0.000<br>
+          gate: ${r.gateNote}<br>
+          <strong>composite ${r.composite.toFixed(3)} → ${r.rec}</strong>`;
+        [sBar,fBar].forEach(b => b
+          .on('mouseover',(e)=>tooltip.html(html).style('left',(e.pageX+12)+'px').style('top',(e.pageY-28)+'px').transition().duration(150).style('opacity',1))
+          .on('mousemove',(e)=>tooltip.style('left',(e.pageX+12)+'px').style('top',(e.pageY-28)+'px'))
+          .on('mouseout',()=>tooltip.transition().duration(100).style('opacity',0))
+          .on('focus',function(){ const bb=this.getBoundingClientRect(); tooltip.html(html).style('left',(bb.right+8)+'px').style('top',(bb.top)+'px').transition().duration(150).style('opacity',1); })
+          .on('blur',()=>tooltip.transition().duration(100).style('opacity',0)));
+      });
+
+      // legend: horizontal strip beneath the x-axis labels (inside the SVG width)
+      const lg = svg.append('g').attr('transform',`translate(${margin.left},${margin.top+chartHeight+58})`);
+      let lx = 0;
+      const legItem = (fill, hatch, text) => {
+        lg.append('rect').attr('x',lx).attr('y',0).attr('width',14).attr('height',14)
+          .attr('fill',fill).attr('stroke', hatch?'var(--color-red)':'none').attr('stroke-width',1);
+        const t = lg.append('text').attr('class','legend-label').attr('x',lx+20).attr('y',11).text(text);
+        lx += 20 + t.node().getComputedTextLength() + 28;
+      };
+      legItem('var(--color-ink)', false, 'sponsorship (record)');
+      legItem('url(#hatch)', true, 'fit (model judgment, ±0.10)');
+      lg.append('text').attr('class','note').attr('x',lx).attr('y',11).text('role_quality (weight 0, computed but never counted)');
+    }
+
+    draw();
+    const ro = new ResizeObserver(() => draw());
+    ro.observe(document.getElementById('chart'));
+  </script>
+</body>
+</html>

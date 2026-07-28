@@ -1,0 +1,25 @@
+[
+  { "role_id": "omada-pm-billing", "company": "Omada Health, Inc.", "title": "Product Manager, Billing",
+    "_evidence_note": "Live posting found by npm run ats:scan -- --dry-run (2026-07-17); confirmed active by npm run ats:liveness. Sponsorship p=0.6 (Likely, not Proven): data/80-days-to-stay/data/SEC_DOL_H1b_data_mapped.csv shows Omada Health Inc with 20 H-1B approvals / 100% approval rate, but the two titles on record ('Senior Android Software Engineer', 'Senior Data Analyst') are both engineering/data, not product -- so this is company-level sponsorship evidence, not role-specific.",
+    "sponsorship": { "p": 0.6, "tier": "Likely", "source": "record" },
+    "fit": { "p": 0.55, "source": "model-judgment", "note": "Individual-contributor billing PM req at a healthtech company matches sector + function; entry-tier fit is a model judgment because the req's actual years-of-experience bar was not re-parsed from the full JD text in this run -- bounded, not verified." },
+    "liveness": { "factor": 1.0, "source": "record" },
+    "timeline": { "factor": 0.9, "source": "your-input", "note": "ILLUSTRATIVE placeholder for the candidate's OPT/STEM-OPT clock -- not a real filing date. Replace with the actual EAD start/end dates and unemployment-days-used count." },
+    "role_quality": { "p": 0.0, "source": "record", "note": "SOC 15-1299.09 (IT Project Managers) cognitive_pivot_score=3.861 from data/bls/compact/soc_occupation_compact.csv, the closest STEM-eligible proxy in the absence of a dedicated PM SOC code. NOT wired into the composite: scripts/score/role-scorer.mjs CONFIG.weights.role_quality is 0.0 by default ([VERIFY], unpinned by book Ch.11 or docs/search-profile-design.md) -- shown here for the human report only." } },
+
+  { "role_id": "oula-product-ops", "company": "Oula Health", "title": "Clinical Systems & Product Operations Manager (Full-Time) - Remote",
+    "_evidence_note": "Live posting found by the same scan; confirmed active by npm run ats:liveness. No H-1B approval record for Oula Health Inc in data/80-days-to-stay/data/SEC_DOL_H1b_data_mapped.csv -- sponsorship tier is Unknown, not None (absence of a record is not evidence of refusal).",
+    "sponsorship": { "p": 0.3, "tier": "Unknown", "source": "record" },
+    "fit": { "p": 0.6, "source": "model-judgment", "note": "Title directly matches the target search's 'Product Operations' track and healthtech sector; bounded judgment, full JD not re-parsed in this run." },
+    "liveness": { "factor": 1.0, "source": "record" },
+    "timeline": { "factor": 0.9, "source": "your-input", "note": "Same illustrative placeholder as above." },
+    "role_quality": { "p": 0.0, "source": "record", "note": "Same SOC 15-1299.09 proxy and same [VERIFY] non-wiring caveat as the Omada row." } },
+
+  { "role_id": "omada-apm-data-governance-EXPIRED", "company": "Omada Health, Inc.", "title": "Associate Product Manager, Data Governance",
+    "_evidence_note": "This exact posting was cited as [P1] in the prior course exercise's gaps.md, live-verified 2026-06-21. Re-checked here 2026-07-17 with npm run ats:liveness -- it now 302-redirects to an error page. Included specifically to test the liveness gate against a previously-verified-live URL, not a fresh find.",
+    "sponsorship": { "p": 0.6, "tier": "Likely", "source": "record" },
+    "fit": { "p": 0.75, "source": "model-judgment", "note": "Per the prior gaps.md analysis this posting was a strong title/sector match; fit score carried over as model-judgment, not re-derived." },
+    "liveness": { "factor": 0.0, "source": "record" },
+    "timeline": { "factor": 0.9, "source": "your-input" },
+    "role_quality": { "p": 0.0, "source": "record" } }
+]

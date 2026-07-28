@@ -1,0 +1,46 @@
+{
+  "_note": "SYNTHETIC candidate set for the allocator-flip audit. No real people. 'needs_sponsorship' is a synthetic protected-attribute proxy (work-authorization / citizenship status). Every fit score is a model-judgment placeholder, not a verified measurement. This fixture exists to demonstrate what the SAME Ch.11 composite (role-scorer.mjs) does when a company points it at candidates to reallocate a scarce resource (interview slots) instead of at companies.",
+
+  "role": {
+    "role_id": "acme-pm-billing-req",
+    "company": "Acme Health (synthetic employer)",
+    "title": "Product Manager, Billing",
+    "interview_slots": 5,
+    "note": "One open req. The company has more applicants than interview slots and uses the scorer to decide who to interview."
+  },
+
+  "policy": {
+    "_note": "The allocator's scoring policy. These are the knobs a company would set. Weights are IDENTICAL to the applicant-side Ch.11 scorer (sponsorship 0.35, fit 0.30); on this side the 0.35 term is the candidate's WORK-AUTHORIZATION score. The work_auth_score map is the discriminatory mechanism: it assigns a low score to candidates who need sponsorship, exactly mirroring how the applicant-side tool down-weights non-sponsoring companies.",
+    "weights": { "work_authorization": 0.35, "fit": 0.30 },
+    "work_auth_score": { "no_sponsorship_needed": 1.0, "sponsorship_needed": 0.2 },
+    "bands": { "interview": 0.30, "hold": 0.20 },
+    "qualified_fit_threshold": 0.5
+  },
+
+  "candidates": [
+    { "candidate_id": "C1", "needs_sponsorship": false, "fit": { "p": 0.15, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" },
+      "_note": "US-authorized, weak fit." },
+    { "candidate_id": "C2", "needs_sponsorship": false, "fit": { "p": 0.30, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C3", "needs_sponsorship": false, "fit": { "p": 0.45, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C4", "needs_sponsorship": false, "fit": { "p": 0.60, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C5", "needs_sponsorship": false, "fit": { "p": 0.80, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+
+    { "candidate_id": "C6", "needs_sponsorship": true, "fit": { "p": 0.35, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" },
+      "_note": "Needs sponsorship (F-1 OPT), weak-to-moderate fit." },
+    { "candidate_id": "C7", "needs_sponsorship": true, "fit": { "p": 0.55, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C8", "needs_sponsorship": true, "fit": { "p": 0.70, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C9", "needs_sponsorship": true, "fit": { "p": 0.85, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" } },
+    { "candidate_id": "C10", "needs_sponsorship": true, "fit": { "p": 0.95, "source": "model-judgment" },
+      "availability": { "factor": 1.0, "source": "record" }, "timeline": { "factor": 1.0, "source": "record" },
+      "_note": "Needs sponsorship, excellent fit -- the stress case for the fairness audit." }
+  ]
+}
