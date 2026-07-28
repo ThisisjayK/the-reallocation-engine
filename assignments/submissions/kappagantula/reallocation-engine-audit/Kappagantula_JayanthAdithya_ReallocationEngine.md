@@ -35,8 +35,12 @@ built.
   Hospitals and Physicians,* and *Health Insurance*. Of those, only 288 of 4,745 (~6%) carry any
   `Total Approvals` H-1B record (re-verified 2026-07-27; a prior 2026-07-17 snapshot read 286 of
   4,623). So a blank sponsorship field means "no data," not "won't sponsor." For a seed or Series-A
-  healthtech company, having no LCA record is the median case rather than a red flag. I state the
-  exact industry filter so anyone can reproduce the count.
+  healthtech company, having no LCA record is the median case rather than a red flag. This count is
+  not asserted — it is machine-checked: `node scripts/gigo-gate-check.mjs` reads the CSV directly
+  (quote-aware parsing, filters to the five industries named above) and reproduces 288/4,745 exactly.
+  The script is not vendored in this folder, since the CSV it reads already lives in the parent course
+  repo this submission is checked out inside (`data/80-days-to-stay/data/...`); see
+  `THIRD_PARTY_NOTICES.md`.
 - **Echo (H-1B).** Wage level is set by the employer and the OES survey for a given SOC and metro, so
   it measures employer size and location, not the candidate.
 

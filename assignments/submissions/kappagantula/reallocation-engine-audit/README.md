@@ -21,6 +21,11 @@ then a government's visa slots.
 - `scripts/score/role-scorer.mjs`: the Ch.11 scorer, vendored unmodified (MIT) from
   `nikbearbrown/the-reallocation-engine` so the commands below run from this folder alone. See
   `THIRD_PARTY_NOTICES.md`.
+- `scripts/gigo-gate-check.mjs`: my script, reproduces the §2 GIGO-gate statistic (288 of 4,745
+  healthcare-sector companies carry an H-1B record) directly from `SEC_DOL_H1b_data_mapped.csv`.
+  Unlike the other two commands, this one depends on that CSV, which is **not** vendored here — it
+  already lives in the parent course repo this submission is checked out inside
+  (`data/80-days-to-stay/data/...`). Run it from that context, or pass the CSV's path explicitly.
 
 ## How to run (only Node.js required; no install)
 
@@ -35,6 +40,11 @@ node scripts/score/role-scorer.mjs sample-data/case-healthtech-pm-opt-roles.json
 
 # 3) The adversarial perturbation (§6): a stale liveness bit flips the dead posting to the top
 node scripts/score/role-scorer.mjs sample-data/case-healthtech-pm-opt-roles-PERTURBED-liveness.json --profile sample-data/case-healthtech-pm-opt-profile.json --out-dir reports
+
+# 4) The GIGO-gate stat (§2): reproduces "288 of 4,745 healthcare companies carry an H-1B record"
+#    directly from the CSV. Only runs from inside the full course repo (see note below); if you
+#    checked out just this folder, pass the CSV's path explicitly as an argument.
+node scripts/gigo-gate-check.mjs
 ```
 
 Open `figures/uncertainty-figure.html` directly in any browser. It loads D3 from a pinned CDN and

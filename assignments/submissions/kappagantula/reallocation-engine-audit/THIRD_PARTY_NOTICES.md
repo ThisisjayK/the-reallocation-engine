@@ -1,7 +1,8 @@
 # Third-party notices
 
 This submission vendors one file from the course domain text's repository so that the
-validation report's commands run reproducibly from this folder alone.
+validation report's commands run reproducibly from this folder alone, and depends on (without
+vendoring) one data file that already lives in that same repository.
 
 ## `scripts/score/role-scorer.mjs`
 
@@ -35,3 +36,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## `data/80-days-to-stay/data/SEC_DOL_H1b_data_mapped.csv` (read by `scripts/gigo-gate-check.mjs`)
+
+- **Source:** SEC Form D + DOL LCA / USCIS H-1B data, mapped and distributed as part of
+  [`nikbearbrown/the-reallocation-engine`](https://github.com/nikbearbrown/the-reallocation-engine).
+  Underlying records are public government filings.
+- **Not vendored here.** This file is not copied into this submission folder. It already exists at
+  that path in the parent course repo this submission is checked out inside, so
+  `scripts/gigo-gate-check.mjs` reads it in place rather than duplicating a 30,369-row file this
+  submission does not own. Running that script from outside the parent repo requires passing the
+  CSV's path explicitly (the script's own error message says so).
